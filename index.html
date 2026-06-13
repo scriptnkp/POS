@@ -128,6 +128,28 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 .prod-price { font-family: 'JetBrains Mono'; font-size: 13px; color: var(--accent); font-weight: 600; }
 .prod-stock { font-size: 10px; color: var(--muted); margin-top: 2px; }
 
+/* qty badge บนการ์ด */
+.prod-card.in-cart { border-color: var(--accent); background: rgba(108,99,255,.08); }
+.cart-badge {
+  position: absolute; top: 6px; right: 6px;
+  display: flex; align-items: center; gap: 3px;
+  background: var(--accent); border-radius: 20px;
+  padding: 2px 4px;
+}
+.cbadge-btn {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,.2); color: #fff;
+  font-size: 16px; font-weight: 700; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; touch-action: manipulation;
+  flex-shrink: 0;
+}
+.cbadge-btn:active { background: rgba(255,255,255,.4); }
+.cbadge-n {
+  font-family: 'JetBrains Mono'; font-size: 13px;
+  font-weight: 700; color: #fff; min-width: 16px; text-align: center;
+}
+
 /* Cart Panel — slides up on mobile */
 .cart-panel {
   background: var(--surface); border-top: 1px solid var(--border);
@@ -700,7 +722,14 @@ function renderProds() {
   if (!list.length) { g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">ไม่พบสินค้า</div>'; return; }
   g.innerHTML = list.map(p => {
     const out = p.stock===0, low = p.stock>0&&p.stock<=p.alert;
-    return `<div class="prod-card${out?' out':''}${low?' low':''}" onclick="addToCart(${p.id})">
+    const ci = cart.find(x=>x.id===p.id);
+    const inCart = ci ? ci.qty : 0;
+    return `<div class="prod-card${out?' out':''}${low?' low':''}${inCart?' in-cart':''}" onclick="addToCart(${p.id})">
+      ${inCart ? `<div class="cart-badge">
+        <button class="cbadge-btn" onclick="event.stopPropagation();changeQty(${p.id},-1)">−</button>
+        <span class="cbadge-n">${inCart}</span>
+        <button class="cbadge-btn" onclick="event.stopPropagation();addToCart(${p.id})">+</button>
+      </div>` : ''}
       <span class="prod-emoji">${p.emoji}</span>
       <div class="prod-name">${p.name}</div>
       <div class="prod-price">${fmt(p.price)}</div>
@@ -719,10 +748,8 @@ function addToCart(id) {
     ex.qty++;
   } else { cart.push({id,name:p.name,price:p.price,emoji:p.emoji,qty:1}); }
   renderCart();
-  if (window.innerWidth < 1024 && document.getElementById('cartPanel').classList.contains('collapsed')) {
-    document.getElementById('cartPanel').classList.remove('collapsed');
-  }
-  toast(`${p.emoji} ${p.name}`,'s');
+  renderProds(); // อัปเดต badge บนการ์ด
+  // ❌ ไม่ expand ตะกร้าอัตโนมัติ — ให้ user เปิดเองเมื่อพร้อมจ่าย
 }
 
 function changeQty(id,d) {
@@ -731,6 +758,7 @@ function changeQty(id,d) {
   i.qty += d;
   if (i.qty<=0) { cart=cart.filter(x=>x.id!==id); }
   renderCart();
+  renderProds(); // sync badge
 }
 
 function clearCart() { cart=[]; document.getElementById('discV').value=''; renderCart(); }
