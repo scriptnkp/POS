@@ -478,13 +478,19 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 
     <!-- === History View === -->
     <div class="view" id="view-history">
-      <div class="topbar"><span class="topbar-title">🧾 ประวัติการขาย</span></div>
+      <div class="topbar">
+        <span class="topbar-title">🧾 ประวัติการขาย</span>
+        <button onclick="resetTxns()" style="margin-left:auto;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid var(--danger);border-radius:var(--rs);padding:6px 14px;font-size:13px;font-weight:600;min-height:36px">🔄 Reset ยอดขาย</button>
+      </div>
       <div class="hist-scroll" id="histList"></div>
     </div>
 
     <!-- === Dashboard View === -->
     <div class="view" id="view-dashboard">
-      <div class="topbar"><span class="topbar-title">📊 รายงานสรุป</span></div>
+      <div class="topbar">
+        <span class="topbar-title">📊 รายงานสรุป</span>
+        <button onclick="resetTxns()" style="margin-left:auto;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid var(--danger);border-radius:var(--rs);padding:6px 14px;font-size:13px;font-weight:600;min-height:36px">🔄 Reset</button>
+      </div>
       <div class="dash-scroll">
         <div class="stat-grid" id="dashStats"></div>
         <div class="section-hd">ยอดขายรายชั่วโมง</div>
@@ -600,7 +606,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
     <div style="height:16px"></div>
     <div class="sheet-btns">
       <button class="sbtn sbtn-secondary" onclick="closeSheet('receiptSheet')">ปิด</button>
-      <button class="sbtn sbtn-accent" onclick="window.print()">🖨️ พิมพ์</button>
+      <button class="sbtn sbtn-accent" onclick="printReceipt()">🖨️ พิมพ์ / บันทึก</button>
     </div>
     <div style="height:8px"></div>
   </div>
@@ -630,6 +636,7 @@ let prods = [
   {id:12,name:'ไข่ไก่ (แผง)',price:120,stock:6,cat:'ของชำ',emoji:'🥚',barcode:'',alert:2},
 ];
 let cart = [], txns = [], nid = 13, editId = null, activeCat = 'ทั้งหมด', cashStr = '0';
+// txns เริ่มต้น 0 — ไม่มี mock data
 
 // ── Helpers ──
 const fmt = n => '฿' + Number(n).toLocaleString('th-TH',{minimumFractionDigits:2});
@@ -968,6 +975,44 @@ function showTx(id) {
   document.getElementById('receiptSheet').classList.add('open');
 }
 
+// ── Print Receipt (mobile-safe: open new tab) ──
+function printReceipt() {
+  const html = document.getElementById('receiptBody').innerHTML;
+  const win = window.open('', '_blank');
+  if (!win) { toast('อนุญาต pop-up เพื่อพิมพ์','e'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ใบเสร็จ</title>
+<style>
+  body{font-family:'Courier New',monospace;font-size:14px;padding:20px;max-width:320px;margin:auto;background:#fff;color:#000;line-height:1.8}
+  .store{font-size:17px;font-weight:bold;text-align:center;margin-bottom:4px}
+  .center{text-align:center;color:#555;font-size:12px}
+  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
+  .row{display:flex;justify-content:space-between}
+  .grand{font-size:18px;font-weight:bold}
+  .green{color:#16a34a}
+  .muted{color:#777}
+  .footer{text-align:center;font-size:12px;color:#888;margin-top:10px}
+  @media print{body{padding:4px}}
+</style></head><body>
+${html.replace(/color:var\(--accent\)/g,'color:#5b21b6')
+      .replace(/color:var\(--success\)/g,'color:#16a34a')
+      .replace(/color:var\(--warning\)/g,'color:#d97706')
+      .replace(/color:var\(--muted\)/g,'color:#777')}
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+// ── Reset ยอดขาย ──
+function resetTxns() {
+  if (!confirm('ล้างข้อมูลยอดขายทั้งหมด?\nการกระทำนี้ไม่สามารถย้อนกลับได้')) return;
+  txns = [];
+  renderHist();
+  renderDash();
+  toast('ล้างยอดขายแล้ว','i');
+}
+
 // ── Dashboard ──
 function renderDash() {
   const tod=txns.filter(t=>new Date(t.date).toDateString()===new Date().toDateString());
@@ -984,18 +1029,29 @@ function renderDash() {
     {l:'รายได้รวม',v:fmt(allTotal),s:'ทุกรายการ',c:'var(--success)'},
     {l:'สินค้าทั้งหมด',v:prods.length,s:'รายการ',c:'var(--info)'},
   ].map(s=>`<div class="stat-card"><div class="stat-lbl">${s.l}</div><div class="stat-val" style="color:${s.c}">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
-  // Hourly bars (mock)
-  const hrs=Array.from({length:10},(_,i)=>({h:String(i+8).padStart(2,'0')+':00',v:Math.floor(Math.random()*600+80)}));
+
+  // Hourly bars — จากข้อมูลจริง
+  const hMap={};
+  tod.forEach(t=>{const h=new Date(t.date).getHours();hMap[h]=(hMap[h]||0)+t.total;});
+  const nowH=new Date().getHours();
+  const startH=Math.max(nowH-9,6);
+  const hrs=Array.from({length:Math.min(nowH-startH+1,10)},(_,i)=>{
+    const h=startH+i;
+    return {h:String(h).padStart(2,'0')+':00',v:hMap[h]||0};
+  });
   const mx=Math.max(...hrs.map(h=>h.v),1);
-  document.getElementById('dashBars').innerHTML=hrs.map(h=>
-    `<div class="bar-row"><span class="bar-lbl">${h.h}</span><div class="bar-bg"><div class="bar-fill" style="width:${(h.v/mx*100).toFixed(1)}%"></div></div><span class="bar-v">${fmt(h.v)}</span></div>`
-  ).join('');
-  // Top products
-  const topList=[...prods].sort((a,b)=>(50-a.stock)-(50-b.stock)).slice(0,5);
-  const tmx=Math.max(...topList.map(p=>50-p.stock),1);
-  document.getElementById('dashTop').innerHTML=topList.map(p=>
-    `<div class="bar-row"><span class="bar-lbl" style="font-size:18px;width:28px">${p.emoji}</span><div class="bar-bg"><div class="bar-fill" style="width:${((50-p.stock)/tmx*100).toFixed(1)}%;background:var(--success)"></div></div><span class="bar-v" style="font-size:11px;color:var(--text)">${p.name.substring(0,6)}</span></div>`
-  ).join('');
+  document.getElementById('dashBars').innerHTML = hrs.length
+    ? hrs.map(h=>`<div class="bar-row"><span class="bar-lbl">${h.h}</span><div class="bar-bg"><div class="bar-fill" style="width:${(h.v/mx*100).toFixed(1)}%"></div></div><span class="bar-v">${fmt(h.v)}</span></div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">ยังไม่มีข้อมูลวันนี้</div>';
+
+  // Top products — นับจาก txns จริง
+  const soldMap={};
+  txns.forEach(t=>t.items.forEach(i=>{soldMap[i.id]=(soldMap[i.id]||{name:i.name,emoji:i.emoji,qty:0});soldMap[i.id].qty+=i.qty;}));
+  const topList=Object.values(soldMap).sort((a,b)=>b.qty-a.qty).slice(0,5);
+  const tmx=Math.max(...topList.map(p=>p.qty),1);
+  document.getElementById('dashTop').innerHTML = topList.length
+    ? topList.map(p=>`<div class="bar-row"><span class="bar-lbl" style="font-size:18px;width:28px">${p.emoji}</span><div class="bar-bg"><div class="bar-fill" style="width:${(p.qty/tmx*100).toFixed(1)}%;background:var(--success)"></div></div><span class="bar-v" style="font-size:11px;color:var(--text)">${p.name.substring(0,7)}</span></div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">ยังไม่มีข้อมูล</div>';
 }
 
 // ── Low Stock Badge ──
