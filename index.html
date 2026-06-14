@@ -898,11 +898,11 @@ function toast(msg, type='i') {
 function goView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
-  // nav buttons
   document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => b.classList.toggle('active', b.dataset.view===v));
   if (v==='dashboard') renderDash();
-  if (v==='products') renderProdTable();
-  if (v==='history') renderHist();
+  if (v==='products')  renderProdTable();
+  if (v==='history')   renderHist();
+  if (v==='settings')  renderSettings();
 }
 document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => b.addEventListener('click', ()=>goView(b.dataset.view)));
 
@@ -1721,13 +1721,6 @@ function doRestore(e) {
     } catch(err) { toast('อ่านไฟล์ไม่ได้: ' + err.message,'e'); }
   };
   reader.readAsText(file);
-}
-
-// ── Patch goView to render settings ──
-const _origGoView = goView;
-function goView(v) {
-  _origGoView(v);
-  if (v === 'settings') renderSettings();
 }
 
 // ── Init ──
