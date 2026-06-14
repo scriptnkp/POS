@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>POS Pro - Enterprise Edition</title>
+<title>POS Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* === Reset & Variables === */
@@ -134,7 +134,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
   position: absolute; top: 6px; right: 6px;
   display: flex; align-items: center; gap: 3px;
   background: var(--accent); border-radius: 20px;
-  padding: 2px 4px; z-index: 10;
+  padding: 2px 4px;
 }
 .cbadge-btn {
   width: 22px; height: 22px; border-radius: 50%;
@@ -273,6 +273,13 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 .meth-pill { font-size: 11px; padding: 2px 8px; border-radius: 8px; }
 .meth-cash { background: rgba(34,197,94,.15); color: var(--success); }
 .meth-qr { background: rgba(108,99,255,.15); color: var(--accent); }
+.meth-void { background: rgba(239,68,68,.15); color: var(--danger); }
+.hist-card.voided { opacity: .55; }
+.void-btn {
+  height: 32px; padding: 0 12px; border-radius: var(--rs); font-size: 12px; font-weight: 600;
+  background: rgba(239,68,68,.1); color: var(--danger); border: 1px solid var(--danger);
+  min-height: 32px; flex-shrink: 0;
+}
 
 /* === Dashboard View === */
 #view-dashboard { background: var(--bg); }
@@ -282,7 +289,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 .stat-lbl { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .stat-val { font-family: 'JetBrains Mono'; font-size: 24px; font-weight: 700; }
 .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.section-hd { font-size: 15px; font-weight: 600; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.section-hd { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
 .bar-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .bar-row { display: flex; align-items: center; gap: 10px; }
 .bar-lbl { font-size: 12px; color: var(--muted); width: 40px; text-align: right; flex-shrink: 0; }
@@ -413,6 +420,67 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
   body > *:not(#printArea) { display: none !important; }
   #printArea { display: block !important; font-family: 'Courier New'; font-size: 12px; padding: 10px; }
 }
+
+/* === PIN Modal === */
+.pin-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+  backdrop-filter: blur(6px);
+}
+.pin-overlay.open { opacity: 1; pointer-events: all; }
+.pin-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px 24px; width: min(340px, 90vw); text-align: center;
+}
+.pin-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.pin-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all .15s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+.pin-dot.error { background: var(--danger); border-color: var(--danger); }
+.pin-keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
+.pin-key {
+  height: 58px; border-radius: var(--r); background: var(--card);
+  color: var(--text); font-size: 22px; font-weight: 600;
+  border: 1.5px solid var(--border); transition: all .1s; min-height: 44px;
+}
+.pin-key:active { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(.95); }
+.pin-cancel { width: 100%; height: 48px; border-radius: var(--r); background: none; color: var(--muted); font-size: 14px; font-weight: 500; }
+
+/* === Settings View === */
+#view-settings { background: var(--bg); }
+.settings-scroll { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.settings-section { background: var(--card); border-radius: var(--r); border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; }
+.settings-hd { font-size: 13px; font-weight: 700; color: var(--muted); padding: 12px 16px; background: var(--card2); text-transform: uppercase; letter-spacing: .5px; }
+.settings-row { display: flex; align-items: center; padding: 14px 16px; border-top: 1px solid var(--border); gap: 12px; }
+.settings-row:first-of-type { border-top: none; }
+.settings-label { flex: 1; font-size: 14px; font-weight: 500; }
+.settings-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.settings-input {
+  flex: 1; height: 40px; background: var(--card2); border: 1.5px solid var(--border);
+  border-radius: var(--rs); padding: 0 12px; color: var(--text); font-size: 14px;
+  text-align: right;
+}
+.settings-input:focus { border-color: var(--accent); outline: none; }
+.toggle-wrap { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+.toggle-wrap input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; border-radius: 14px;
+  background: var(--card2); border: 1.5px solid var(--border); cursor: pointer; transition: all .2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--muted); top: 2px; left: 2px; transition: all .2s;
+}
+.toggle-wrap input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle-wrap input:checked + .toggle-slider::before { background: #fff; transform: translateX(20px); }
+.backup-btns { display: flex; gap: 10px; padding: 14px 16px; }
+.backup-btn { flex: 1; height: 48px; border-radius: var(--r); font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
 </style>
 </head>
 <body>
@@ -424,6 +492,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
     <button class="snav-btn" data-view="products"><span class="icon">📦</span>สินค้า</button>
     <button class="snav-btn" data-view="history"><span class="icon">🧾</span>ใบเสร็จ</button>
     <button class="snav-btn" data-view="dashboard"><span class="icon">📊</span>รายงาน</button>
+    <button class="snav-btn" data-view="settings"><span class="icon">⚙️</span>ตั้งค่า</button>
   </nav>
 
   <!-- Views container -->
@@ -436,13 +505,14 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
         <div class="topbar">
           <span style="font-size:20px;font-weight:800;color:var(--accent)">POS<span style="color:var(--text)">Pro</span></span>
           <span id="alertPill" style="display:none;background:var(--danger);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;margin-left:4px"></span>
-          <span class="clock" id="clk" style="margin-left:auto"></span>
+          <span id="scannerPill" style="display:none;background:rgba(34,197,94,.15);color:var(--success);border:1px solid var(--success);border-radius:10px;font-size:11px;font-weight:700;padding:3px 8px">📡 Scanner</span>
+        <span class="clock" id="clk" style="margin-left:auto"></span>
         </div>
         <!-- Search -->
         <div class="search-row">
           <div class="search-wrap">
             <span class="search-icon">🔍</span>
-            <input type="search" id="srch" placeholder="ค้นหาสินค้า / ยิงบาร์โค้ดที่นี่" oninput="filterProds()" autocomplete="off" autocorrect="off" spellcheck="false">
+            <input type="search" id="srch" placeholder="ค้นหาสินค้า / บาร์โค้ด" oninput="filterProds()" autocomplete="off" autocorrect="off" spellcheck="false">
           </div>
           <button class="scan-btn" onclick="doScan()" id="scanBtn" title="สแกน">📷</button>
         </div>
@@ -488,7 +558,10 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 
     <!-- === Products View === -->
     <div class="view" id="view-products">
-      <div class="topbar"><span class="topbar-title">📦 จัดการสินค้า</span></div>
+      <div class="topbar">
+        <span class="topbar-title">📦 สินค้า</span>
+        <button onclick="exportCSV('stock')" style="margin-left:auto;background:rgba(56,189,248,.12);color:var(--info);border:1px solid var(--info);border-radius:var(--rs);padding:6px 12px;font-size:13px;font-weight:600;min-height:36px">📥 Export</button>
+      </div>
       <div class="prod-mgmt-scroll">
         <div class="toolbar">
           <input type="search" id="pmSrch" placeholder="ค้นหา..." oninput="renderProdTable()" style="font-size:16px">
@@ -501,8 +574,11 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
     <!-- === History View === -->
     <div class="view" id="view-history">
       <div class="topbar">
-        <span class="topbar-title">🧾 ประวัติการขาย</span>
-        <button onclick="resetTxns()" style="margin-left:auto;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid var(--danger);border-radius:var(--rs);padding:6px 14px;font-size:13px;font-weight:600;min-height:36px">🔄 Reset ยอดขาย</button>
+        <span class="topbar-title">🧾 ประวัติ</span>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button onclick="exportCSV('sales')" style="background:rgba(56,189,248,.12);color:var(--info);border:1px solid var(--info);border-radius:var(--rs);padding:6px 12px;font-size:13px;font-weight:600;min-height:36px">📥 CSV</button>
+          <button onclick="resetTxns()" style="background:rgba(239,68,68,.12);color:var(--danger);border:1px solid var(--danger);border-radius:var(--rs);padding:6px 12px;font-size:13px;font-weight:600;min-height:36px">🔄 Reset</button>
+        </div>
       </div>
       <div class="hist-scroll" id="histList"></div>
     </div>
@@ -515,13 +591,91 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
       </div>
       <div class="dash-scroll">
         <div class="stat-grid" id="dashStats"></div>
-        <div class="section-hd">
-          <span>ยอดขายรายชั่วโมง</span>
-          <button onclick="exportSalesCSV()" style="background:var(--card2);color:var(--info);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;">📥 Export Excel (CSV)</button>
-        </div>
+        <div class="section-hd">ยอดขายรายชั่วโมง</div>
         <div class="bar-list" id="dashBars"></div>
         <div class="section-hd">สินค้าขายดี</div>
         <div class="bar-list" id="dashTop"></div>
+      </div>
+    </div>
+
+    <!-- === Settings View === -->
+    <div class="view" id="view-settings">
+      <div class="topbar"><span class="topbar-title">⚙️ ตั้งค่า</span></div>
+      <div class="settings-scroll">
+
+        <!-- ข้อมูลร้าน -->
+        <div class="settings-section">
+          <div class="settings-hd">🏪 ข้อมูลร้านค้า</div>
+          <div class="settings-row">
+            <div><div class="settings-label">ชื่อร้าน</div></div>
+            <input class="settings-input" id="sStoreName" placeholder="POS Pro ร้านค้า" oninput="saveSettings()">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">ที่อยู่</div></div>
+            <input class="settings-input" id="sAddress" placeholder="ที่อยู่ร้าน" oninput="saveSettings()">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">เบอร์โทร</div></div>
+            <input class="settings-input" id="sPhone" placeholder="0XX-XXX-XXXX" inputmode="tel" oninput="saveSettings()">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">ข้อความท้ายใบเสร็จ</div></div>
+            <input class="settings-input" id="sFooter" placeholder="ขอบคุณที่ใช้บริการ 🙏" oninput="saveSettings()">
+          </div>
+        </div>
+
+        <!-- VAT -->
+        <div class="settings-section">
+          <div class="settings-hd">🧾 ภาษีมูลค่าเพิ่ม (VAT)</div>
+          <div class="settings-row">
+            <div><div class="settings-label">เปิดใช้ VAT 7%</div><div class="settings-sub">แสดงภาษีในใบเสร็จ</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="sVatOn" onchange="saveSettings()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row" id="vatModeRow" style="display:none">
+            <div><div class="settings-label">รูปแบบ VAT</div><div class="settings-sub">รวมในราคา vs แยกนอกราคา</div></div>
+            <select class="settings-input" id="sVatMode" style="text-align:right" onchange="saveSettings()">
+              <option value="inc">รวมในราคา (Inc.)</option>
+              <option value="exc">แยกนอกราคา (Exc.)</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">เลขพร้อมเพย์</div><div class="settings-sub">เบอร์มือถือ หรือ เลขบัตร 13 หลัก</div></div>
+            <input class="settings-input" id="sPromptPay" placeholder="0812345678" inputmode="numeric" oninput="saveSettings()">
+          </div>
+        </div>
+
+        <!-- PIN Manager -->
+        <div class="settings-section">
+          <div class="settings-hd">🔐 รหัสผ่านผู้จัดการ (PIN)</div>
+          <div class="settings-row">
+            <div><div class="settings-label">PIN ปัจจุบัน</div><div class="settings-sub" id="pinStatus">ยังไม่ได้ตั้ง PIN (ใช้ 0000)</div></div>
+          </div>
+          <div class="settings-row">
+            <button onclick="requirePin(changePinFlow)" style="flex:1;height:44px;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:14px;font-weight:600">🔑 เปลี่ยน PIN</button>
+          </div>
+        </div>
+
+        <!-- Backup / Restore -->
+        <div class="settings-section">
+          <div class="settings-hd">💾 สำรอง / กู้คืนข้อมูล</div>
+          <div class="settings-sub" style="padding:10px 16px;font-size:12px;color:var(--muted)">สำรองข้อมูลสินค้าและยอดขายทั้งหมดเป็นไฟล์ JSON เพื่อป้องกันข้อมูลสูญหาย</div>
+          <div class="backup-btns">
+            <button class="backup-btn" onclick="backupJSON()" style="background:rgba(56,189,248,.12);color:var(--info);border:1px solid var(--info)">📤 Backup JSON</button>
+            <button class="backup-btn" onclick="restoreJSON()" style="background:rgba(34,197,94,.12);color:var(--success);border:1px solid var(--success)">📥 Restore JSON</button>
+          </div>
+          <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="doRestore(event)">
+        </div>
+
+        <!-- Export -->
+        <div class="settings-section">
+          <div class="settings-hd">📊 ส่งออกข้อมูล (CSV)</div>
+          <div class="backup-btns">
+            <button class="backup-btn" onclick="exportCSV('sales')" style="background:rgba(108,99,255,.12);color:var(--accent);border:1px solid var(--accent)">🧾 ยอดขาย CSV</button>
+            <button class="backup-btn" onclick="exportCSV('stock')" style="background:rgba(245,158,11,.12);color:var(--warning);border:1px solid var(--warning)">📦 สต็อก CSV</button>
+          </div>
+        </div>
+
+        <div style="height:20px"></div>
       </div>
     </div>
 
@@ -531,8 +685,9 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
   <nav class="bottom-nav" id="bottomNav">
     <button class="bnav-btn active" data-view="pos"><span class="icon">🛒</span>ขาย<span class="bnav-badge" id="bnBadge" style="display:none">!</span></button>
     <button class="bnav-btn" data-view="products"><span class="icon">📦</span>สินค้า</button>
-    <button class="bnav-btn" data-view="history"><span class="icon">🧾</span>ใบเสร็จ</button>
+    <button class="bnav-btn" data-view="history"><span class="icon">🧾</span>บิล</button>
     <button class="bnav-btn" data-view="dashboard"><span class="icon">📊</span>รายงาน</button>
+    <button class="bnav-btn" data-view="settings"><span class="icon">⚙️</span>ตั้งค่า</button>
   </nav>
 </div>
 
@@ -637,6 +792,35 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
   </div>
 </div>
 
+<!-- PIN Modal -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-title">🔐 ยืนยันตัวตน</div>
+    <div class="pin-sub" id="pinSubText">กรอก PIN ผู้จัดการ</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" style="font-size:16px" onclick="pinKey('clr')">ล้าง</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" style="font-size:20px" onclick="pinKey('del')">⌫</button>
+    </div>
+    <button class="pin-cancel" onclick="closePinModal()">ยกเลิก</button>
+  </div>
+</div>
+
 <div class="toast-box" id="toastBox"></div>
 <div id="printArea" style="display:none"></div>
 
@@ -645,80 +829,49 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
 const STORE = 'POS Pro ร้านค้า';
 const LOW = 5;
 
-// ── Default State ──
-let defaultProds = [
+// ── Default Products ──
+const DEFAULT_PRODS = [
   {id:1,name:'น้ำดื่ม 600ml',price:7,stock:48,cat:'เครื่องดื่ม',emoji:'💧',barcode:'8850001234567',alert:5},
   {id:2,name:'โค้ก 325ml',price:15,stock:24,cat:'เครื่องดื่ม',emoji:'🥤',barcode:'8850009876543',alert:5},
   {id:3,name:'กาแฟสำเร็จรูป',price:8,stock:3,cat:'เครื่องดื่ม',emoji:'☕',barcode:'8850001111111',alert:5},
-  {id:4,name:'ข้าวเหนียวหมูย่าง',price:40,stock:12,cat:'อาหาร',emoji:'🍱',barcode:'123456',alert:3},
+  {id:4,name:'ข้าวเหนียวหมูย่าง',price:40,stock:12,cat:'อาหาร',emoji:'🍱',barcode:'',alert:3},
   {id:5,name:'บะหมี่กึ่งสำเร็จรูป',price:6,stock:0,cat:'อาหาร',emoji:'🍜',barcode:'8850002222222',alert:5},
-  {id:6,name:'ขนมปัง',price:35,stock:8,cat:'อาหาร',emoji:'🍞',barcode:'112233',alert:3},
+  {id:6,name:'ขนมปัง',price:35,stock:8,cat:'อาหาร',emoji:'🍞',barcode:'',alert:3},
+  {id:7,name:'ยาสีฟัน',price:45,stock:15,cat:'ของใช้',emoji:'🪥',barcode:'8850003333333',alert:5},
+  {id:8,name:'สบู่',price:25,stock:20,cat:'ของใช้',emoji:'🧼',barcode:'8850004444444',alert:5},
+  {id:9,name:'ซองชา',price:12,stock:30,cat:'เครื่องดื่ม',emoji:'🍵',barcode:'8850005555555',alert:10},
+  {id:10,name:'น้ำตาล 1kg',price:28,stock:18,cat:'ของชำ',emoji:'🧂',barcode:'8850006666666',alert:5},
+  {id:11,name:'นมสด',price:18,stock:4,cat:'เครื่องดื่ม',emoji:'🥛',barcode:'8850007777777',alert:5},
+  {id:12,name:'ไข่ไก่ (แผง)',price:120,stock:6,cat:'ของชำ',emoji:'🥚',barcode:'',alert:2},
 ];
 
-let prods = [];
-let txns = [];
-let cart = [], nid = 13, editId = null, activeCat = 'ทั้งหมด', cashStr = '0';
+// ── LocalStorage ──
+const LS_PRODS = 'pospro_prods';
+const LS_TXNS  = 'pospro_txns';
+const LS_NID   = 'pospro_nid';
 
-// ── LocalStorage Data Engine ──
-function loadData() {
-  const localProds = localStorage.getItem('pos_prods');
-  const localTxns = localStorage.getItem('pos_txns');
-  
-  if (localProds) {
-    prods = JSON.parse(localProds);
-  } else {
-    prods = [...defaultProds];
-    saveData();
-  }
-  
-  if (localTxns) {
-    txns = JSON.parse(localTxns);
-  }
-  
-  if (prods.length > 0) {
-    nid = Math.max(...prods.map(p => p.id)) + 1;
-  }
+function lsSave() {
+  try {
+    localStorage.setItem(LS_PRODS, JSON.stringify(prods));
+    localStorage.setItem(LS_TXNS,  JSON.stringify(txns));
+    localStorage.setItem(LS_NID,   nid);
+  } catch(e) { console.warn('localStorage full', e); }
+}
+function lsLoad() {
+  try {
+    const p = localStorage.getItem(LS_PRODS);
+    const t = localStorage.getItem(LS_TXNS);
+    const n = localStorage.getItem(LS_NID);
+    if (p) prods = JSON.parse(p);
+    if (t) txns  = JSON.parse(t).map(tx=>({...tx, date: new Date(tx.date)}));
+    if (n) nid   = parseInt(n)||13;
+  } catch(e) { console.warn('lsLoad error', e); }
 }
 
-function saveData() {
-  localStorage.setItem('pos_prods', JSON.stringify(prods));
-  localStorage.setItem('pos_txns', JSON.stringify(txns));
-}
-
-// ── Hardware Barcode Scanner Engine (Global Listener) ──
-let barcodeBuffer = '';
-let lastKeyTime = Date.now();
-
-document.addEventListener('keydown', e => {
-  // หากผู้ใช้กำลังพิมพ์ใน input ใดๆ อยู่ ไม่ต้องดักจับเพื่อยิงสินค้า
-  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
-
-  const currentTime = Date.now();
-  // เครื่องยิงบาร์โค้ดจะส่งค่าถี่มาก (ปกติ < 30ms ต่อตัวอักษร) ถ้าคีย์บอร์ดมนุษย์กดจะช้ากว่านั้น
-  if (currentTime - lastKeyTime > 100) {
-    barcodeBuffer = '';
-  }
-  lastKeyTime = currentTime;
-
-  if (e.key === 'Enter') {
-    if (barcodeBuffer.length >= 3) { 
-      const scannedProd = prods.find(p => p.barcode === barcodeBuffer);
-      if (scannedProd) {
-        addToCart(scannedProd.id);
-        toast(`🎯 ยิงบาร์โค้ดสำเร็จ: ${scannedProd.name}`, 's');
-        // บนมือถือ ให้กางตะกร้าอัตโนมัติเพื่อให้เห็นว่าของเข้าแล้ว
-        if (window.innerWidth < 1024) {
-          document.getElementById('cartPanel').classList.remove('collapsed');
-        }
-      } else {
-        toast(`⚠ ไม่พบสินค้าบาร์โค้ด: ${barcodeBuffer}`, 'e');
-      }
-      barcodeBuffer = '';
-    }
-  } else if (/^[a-zA-Z0-9]$/.test(e.key)) {
-    barcodeBuffer += e.key;
-  }
-});
+// ── State ──
+let prods = [...DEFAULT_PRODS];
+let cart = [], txns = [], nid = 13, editId = null, activeCat = 'ทั้งหมด', cashStr = '0';
+lsLoad(); // โหลดจาก localStorage (ถ้ามี)
 
 // ── Helpers ──
 const fmt = n => '฿' + Number(n).toLocaleString('th-TH',{minimumFractionDigits:2});
@@ -745,6 +898,7 @@ function toast(msg, type='i') {
 function goView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
+  // nav buttons
   document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => b.classList.toggle('active', b.dataset.view===v));
   if (v==='dashboard') renderDash();
   if (v==='products') renderProdTable();
@@ -759,6 +913,7 @@ function updateNav() {
   document.getElementById('sideNav').style.display = desktop ? 'flex' : 'none';
 }
 window.addEventListener('resize', updateNav);
+updateNav();
 
 // ── Categories ──
 function getCats() { return ['ทั้งหมด', ...new Set(prods.map(p=>p.cat))]; }
@@ -791,7 +946,7 @@ function renderProds() {
       <span class="prod-emoji">${p.emoji}</span>
       <div class="prod-name">${p.name}</div>
       <div class="prod-price">${fmt(p.price)}</div>
-      <div class="prod-stock">${out?'หมด':low?`⚠ เหลือ ${p.stock}`:`เหลือ ${p.stock}`}</div>
+      <div class="prod-stock">${out?'หมด':low?`⚠ ${p.stock}`:`เหลือ ${p.stock}`}</div>
     </div>`;
   }).join('');
 }
@@ -799,28 +954,27 @@ function renderProds() {
 // ── Cart ──
 function addToCart(id) {
   const p = prods.find(x=>x.id===id);
-  if (!p||p.stock===0) { toast('สินค้าหมดคลังแล้ว','e'); return; }
+  if (!p||p.stock===0) { toast('สินค้าหมด','e'); return; }
   const ex = cart.find(x=>x.id===id);
   if (ex) {
-    if (ex.qty>=p.stock) { toast('สินค้าในคลังไม่พอขาย','e'); return; }
+    if (ex.qty>=p.stock) { toast('สินค้าไม่พอ','e'); return; }
     ex.qty++;
   } else { cart.push({id,name:p.name,price:p.price,emoji:p.emoji,qty:1}); }
   renderCart();
-  renderProds();
+  renderProds(); // อัปเดต badge บนการ์ด
+  smartExpandCart(); // แง้มตะกร้าให้เห็นความเคลื่อนไหว แล้ว auto-collapse
 }
 
 function changeQty(id,d) {
   const i = cart.find(x=>x.id===id);
   if (!i) return;
-  const p = prods.find(x=>x.id===id);
-  if (d > 0 && i.qty >= p.stock) { toast('สินค้าในคลังไม่พอขาย','e'); return; }
   i.qty += d;
   if (i.qty<=0) { cart=cart.filter(x=>x.id!==id); }
   renderCart();
-  renderProds();
+  renderProds(); // sync badge
 }
 
-function clearCart() { cart=[]; document.getElementById('discV').value=''; renderCart(); renderProds(); }
+function clearCart() { cart=[]; document.getElementById('discV').value=''; renderCart(); }
 
 function toggleCart() {
   if (window.innerWidth >= 1024) return;
@@ -833,13 +987,12 @@ function renderCart() {
   document.getElementById('cartPreview').textContent = fmt(getTotals().total);
   const body = document.getElementById('cartBody');
   const empty = document.getElementById('cartEmpty');
-  
-  body.querySelectorAll('.cart-item').forEach(el=>el.remove());
-  
   if (!cart.length) {
     empty.style.display='flex';
+    body.querySelectorAll('.cart-item').forEach(el=>el.remove());
   } else {
     empty.style.display='none';
+    body.querySelectorAll('.cart-item').forEach(el=>el.remove());
     cart.forEach(i => {
       const el = document.createElement('div');
       el.className = 'cart-item';
@@ -857,11 +1010,31 @@ function renderCart() {
   recalc();
 }
 
+// ── VAT Calculation ──
+function buildVatLines(total) {
+  if (!settings.vatOn) return '';
+  const rate = 0.07;
+  if (settings.vatMode === 'inc') {
+    const vat = total * rate / (1 + rate);
+    return `<div class="receipt-row" style="color:var(--muted);font-size:12px"><span>ราคาก่อน VAT</span><span>${fmt(total-vat)}</span></div>
+            <div class="receipt-row" style="color:var(--muted);font-size:12px"><span>VAT 7% (รวมแล้ว)</span><span>${fmt(vat)}</span></div>`;
+  } else {
+    const vat = total * rate;
+    return `<div class="receipt-row" style="color:var(--warning);font-size:12px"><span>VAT 7%</span><span>+${fmt(vat)}</span></div>`;
+  }
+}
+
+function getGrandTotal(baseTotal) {
+  if (!settings.vatOn || settings.vatMode === 'inc') return baseTotal;
+  return baseTotal * 1.07;
+}
+
 function recalc() {
   const {sub,disc,total} = getTotals();
+  const grand = getGrandTotal(total);
   document.getElementById('sumSub').textContent = fmt(sub);
   document.getElementById('sumDisc').textContent = '-'+fmt(disc);
-  document.getElementById('sumTotal').textContent = fmt(total);
+  document.getElementById('sumTotal').textContent = fmt(grand);
   const has = cart.length>0;
   ['btnCash','btnQR','btnReceipt'].forEach(id=>document.getElementById(id).disabled=!has);
 }
@@ -872,35 +1045,123 @@ document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e
 
 function openQR() {
   const {total} = getTotals();
-  document.getElementById('qrAmt').textContent = fmt(total);
+  const grand = getGrandTotal(total);
+  document.getElementById('qrAmt').textContent = fmt(grand);
   document.getElementById('qrSheet').classList.add('open');
-  drawQR(total);
+  drawPromptPayQR(grand);
 }
 
-function drawQR(amount) {
-  const c = document.getElementById('qrCanvas');
-  const ctx = c.getContext('2d');
-  c.width=180; c.height=180;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,180,180);
-  const cells=21, sz=180/cells;
-  const corners = [[0,0],[14,0],[0,14]];
-  corners.forEach(([ox,oy]) => {
-    ctx.fillStyle='#000'; ctx.fillRect(ox*sz,oy*sz,7*sz,7*sz);
-    ctx.fillStyle='#fff'; ctx.fillRect((ox+1)*sz,(oy+1)*sz,5*sz,5*sz);
-    ctx.fillStyle='#000'; ctx.fillRect((ox+2)*sz,(oy+2)*sz,3*sz,3*sz);
-  });
-  ctx.fillStyle='#000';
-  const seed = Math.floor(amount*100)||1;
-  for (let r=0;r<cells;r++) for(let c2=0;c2<cells;c2++) {
-    if ((r<8&&c2<8)||(r<8&&c2>12)||(r>12&&c2<8)) continue;
-    if (((seed*(r+3)*(c2+7)*31)%97)>46) ctx.fillRect(c2*sz,r*sz,sz,sz);
+// ── Real PromptPay QR (EMVCo Standard) ──
+function emvField(id, val) {
+  const len = String(val.length).padStart(2,'0');
+  return id + len + val;
+}
+
+function promptPayPayload(phoneOrId, amount) {
+  // Normalize: เบอร์มือถือ → 0066XXXXXXXX, เลขบัตร 13 หลัก → ตรงๆ
+  let target = phoneOrId.replace(/[-\s]/g,'');
+  if (/^\d{10}$/.test(target)) {
+    target = '0066' + target.slice(1); // 08x → 0066-8x
+  } else if (/^\d{13}$/.test(target)) {
+    // เลขบัตรประชาชน ใช้ตรงๆ
+  } else {
+    return null; // ไม่รู้จักรูปแบบ
   }
+
+  // 00 = payload format indicator
+  const payloadFormatIndicator = emvField('00','01');
+  // 01 = point of initiation: 12 = dynamic (มียอด)
+  const poi = emvField('01','12');
+  // 29 = PromptPay merchant account
+  const ppGuid = emvField('00','A000000677010111');
+  const ppTarget = emvField('01', target);
+  const merchantAccInfo = emvField('29', ppGuid + ppTarget);
+  // 52 = MCC (merchant category code) — 5999 = misc retail
+  const mcc = emvField('52','5999');
+  // 53 = currency THB = 764
+  const currency = emvField('53','764');
+  // 54 = amount (2 decimal places)
+  const amtStr = amount.toFixed(2);
+  const amt = emvField('54', amtStr);
+  // 58 = country code
+  const country = emvField('58','TH');
+  // 59 = merchant name (max 25 chars)
+  const storeName = (settings.storeName || 'POS Pro').substring(0,25);
+  const merchant = emvField('59', storeName);
+  // 60 = city
+  const city = emvField('60','Bangkok');
+
+  // Build without CRC
+  const body = payloadFormatIndicator + poi + merchantAccInfo + mcc + currency + amt + country + merchant + city;
+  // 63 = CRC placeholder
+  const crcInput = body + '6304';
+  const crc = crc16(crcInput).toString(16).toUpperCase().padStart(4,'0');
+  return body + emvField('63', crc);
+}
+
+function crc16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+    }
+  }
+  return crc & 0xFFFF;
+}
+
+function drawPromptPayQR(amount) {
+  const canvas = document.getElementById('qrCanvas');
+  const promptPay = settings.promptPay;
+
+  // ถ้ายังไม่ได้ตั้งเลขพร้อมเพย์ → ใช้ QR Image API (ไม่ต้องตั้งค่า)
+  if (!promptPay || promptPay.trim() === '') {
+    // แสดง prompt ให้ตั้งค่า
+    canvas.width = 180; canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,180,180);
+    ctx.fillStyle = '#6C63FF'; ctx.font = 'bold 13px Inter,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('กรุณาตั้งค่า', 90, 80);
+    ctx.fillText('เลขพร้อมเพย์', 90, 98);
+    ctx.fillText('ในหน้า ⚙️ ตั้งค่า', 90, 116);
+    document.getElementById('qrAmt').innerHTML = fmt(amount) + '<br><span style="font-size:12px;color:var(--warning)">⚠ ยังไม่ได้ตั้งเลขพร้อมเพย์</span>';
+    return;
+  }
+
+  const payload = promptPayPayload(promptPay, amount);
+  if (!payload) {
+    toast('เลขพร้อมเพย์ไม่ถูกต้อง — ต้องเป็นเบอร์ 10 หลัก หรือเลขบัตร 13 หลัก','e');
+    return;
+  }
+
+  // วาด QR ผ่าน API ภาพ (api.qrserver.com — ฟรี ไม่ต้อง key)
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&ecc=M&data=${encodeURIComponent(payload)}`;
+  canvas.width = 180; canvas.height = 180;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,180,180);
+  ctx.fillStyle = '#ccc'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('กำลังโหลด...', 90, 94);
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { ctx.clearRect(0,0,180,180); ctx.drawImage(img,0,0,180,180); };
+  img.onerror = () => {
+    // fallback: แสดง payload text QR ด้วย canvas เอง (ไม่ต้องการ internet)
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,180,180);
+    ctx.fillStyle = '#333'; ctx.font = '10px monospace'; ctx.textAlign = 'left';
+    const lines = payload.match(/.{1,28}/g)||[];
+    lines.slice(0,12).forEach((l,i) => ctx.fillText(l, 4, 14+i*13));
+    toast('ไม่มี internet — ไม่สามารถโหลด QR ได้','e');
+  };
+  img.src = url;
 }
 
 function openCash() {
   const {total}=getTotals();
+  const grand = getGrandTotal(total);
   cashStr='0';
-  document.getElementById('cashDue').textContent=`ยอดที่ต้องชำระ: ${fmt(total)}`;
+  document.getElementById('cashDue').textContent=`ยอดที่ต้องชำระ: ${fmt(grand)}`;
   document.getElementById('cashAmt').textContent='0';
   document.getElementById('changeRow').textContent='';
   document.getElementById('cashConfirm').disabled=true;
@@ -914,7 +1175,8 @@ function cKey(k) {
   const v=parseInt(cashStr)||0;
   document.getElementById('cashAmt').textContent=fmtN(v);
   const {total}=getTotals();
-  const change=v-total;
+  const grand = getGrandTotal(total);
+  const change=v-grand;
   const cr=document.getElementById('changeRow');
   if (change>=0) { cr.textContent=`ทอน: ${fmt(change)}`; cr.style.color='var(--success)'; document.getElementById('cashConfirm').disabled=false; }
   else { cr.textContent=`ขาด: ${fmt(-change)}`; cr.style.color='var(--danger)'; document.getElementById('cashConfirm').disabled=true; }
@@ -924,31 +1186,44 @@ function cPreset(n) { cashStr=String((parseInt(cashStr)||0)+n); cKey(''); }
 
 function openReceipt() {
   const {sub,disc,total}=getTotals();
+  const grand = getGrandTotal(total);
   const now=new Date();
+  const store = settings.storeName || STORE;
   document.getElementById('receiptBody').innerHTML=`
-    <div class="receipt-header"><div class="store">${STORE}</div><div style="font-size:12px;color:var(--muted)">${now.toLocaleString('th-TH')}</div></div>
+    <div class="receipt-header">
+      <div class="store">${store}</div>
+      ${settings.address?`<div style="font-size:11px;color:var(--muted)">${settings.address}</div>`:''}
+      ${settings.phone?`<div style="font-size:11px;color:var(--muted)">โทร: ${settings.phone}</div>`:''}
+      <div style="font-size:12px;color:var(--muted)">${now.toLocaleString('th-TH')}</div>
+    </div>
     <div class="receipt-dashed"></div>
     ${cart.map(i=>`<div class="receipt-row"><span>${i.emoji} ${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
     <div class="receipt-dashed"></div>
     ${disc>0?`<div class="receipt-row" style="color:var(--warning)"><span>ส่วนลด</span><span>-${fmt(disc)}</span></div>`:''}
-    <div class="receipt-row receipt-grand"><span>ยอดรวม</span><span style="color:var(--accent)">${fmt(total)}</span></div>
-    <div class="receipt-footer">ขอบคุณที่ใช้บริการ 🙏</div>`;
+    ${buildVatLines(total)}
+    <div class="receipt-row receipt-grand"><span>ยอดรวม</span><span style="color:var(--accent)">${fmt(grand)}</span></div>
+    <div class="receipt-footer">${settings.footer||'ขอบคุณที่ใช้บริการ 🙏'}</div>`;
   document.getElementById('receiptSheet').classList.add('open');
 }
 
 function confirmPay(method) {
   const {sub,disc,total}=getTotals();
-  const change = method==='Cash' ? Math.max((parseInt(cashStr)||0)-total,0) : 0;
-  txns.unshift({id:'R'+String(txns.length+1).padStart(4,'0'), date:new Date(), items:[...cart], sub,disc,total,method,change});
-  
-  // ตัดสต็อก
+  const grand = getGrandTotal(total);
+  const change = method==='Cash' ? Math.max((parseInt(cashStr)||0)-grand,0) : 0;
+  const vatAmt = settings.vatOn ? (settings.vatMode==='exc' ? total*0.07 : total*0.07/1.07) : 0;
+  txns.unshift({
+    id:'R'+String(txns.length+1).padStart(4,'0'),
+    date:new Date(), items:[...cart],
+    sub, disc, total: grand, baseTotal: total,
+    vatAmt, vatMode: settings.vatOn ? settings.vatMode : null,
+    method, change, voided: false
+  });
   cart.forEach(ci=>{const p=prods.find(x=>x.id===ci.id);if(p) p.stock=Math.max(0,p.stock-ci.qty);});
-  
-  saveData(); // บันทึกข้อมูลลงฐานข้อมูลเบราว์เซอร์
   closeSheet('qrSheet'); closeSheet('cashSheet');
   cart=[]; document.getElementById('discV').value='';
+  lsSave();
   renderCart(); renderProds(); checkLow();
-  toast(`✅ บันทึกยอดขาย ${fmt(total)}${method==='Cash'?` ทอน ${fmt(change)}`:''}`, 's');
+  toast(`✅ ${fmt(grand)}${method==='Cash'?` ทอน ${fmt(change)}`:''}`, 's');
 }
 
 // ── Scan simulation ──
@@ -958,7 +1233,7 @@ function doScan() {
   setTimeout(()=>{
     btn.classList.remove('scanning');
     const avail = prods.filter(p=>p.barcode&&p.stock>0);
-    if(!avail.length){toast('ไม่มีสินค้าที่มีบาร์โค้ดในระบบ','e');return;}
+    if(!avail.length){toast('ไม่พบสินค้า','e');return;}
     const p = avail[Math.floor(Math.random()*avail.length)];
     document.getElementById('srch').value=p.barcode;
     filterProds();
@@ -973,12 +1248,12 @@ function renderProdTable() {
   const list=prods.filter(p=>!q||p.name.toLowerCase().includes(q)||p.barcode.includes(q));
   document.getElementById('prodTable').innerHTML=list.map(p=>{
     const sc=p.stock===0?'s-out':p.stock<=p.alert?'s-low':'s-ok';
-    const sl=p.stock===0?'หมด':p.stock<=p.alert?`⚠ เหลือ ${p.stock}`:p.stock;
+    const sl=p.stock===0?'หมด':p.stock<=p.alert?`⚠ ${p.stock}`:p.stock;
     return `<div class="prod-row">
       <span class="pr-emoji">${p.emoji}</span>
       <div class="pr-info">
         <div class="pr-name">${p.name}</div>
-        <div class="pr-meta">${p.cat}${p.barcode?` · 🔑 ${p.barcode}`:''}</div>
+        <div class="pr-meta">${p.cat}${p.barcode?` · ${p.barcode}`:''}</div>
         <div class="pr-actions">
           <button class="pr-btn pr-edit" onclick="editProd(${p.id})">✏️ แก้ไข</button>
           <button class="pr-btn pr-del" onclick="delProd(${p.id})">🗑️ ลบ</button>
@@ -995,7 +1270,7 @@ function renderProdTable() {
 function openAddProd() {
   editId=null;
   ['fName','fPrice','fStock','fBarcode','fEmoji','fCat','fAlert'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('prodSheetTitle').textContent='➕ เพิ่มสินค้าใหม่';
+  document.getElementById('prodSheetTitle').textContent='➕ เพิ่มสินค้า';
   document.getElementById('prodSheet').classList.add('open');
 }
 
@@ -1009,154 +1284,201 @@ function editProd(id) {
   document.getElementById('fEmoji').value=p.emoji;
   document.getElementById('fCat').value=p.cat;
   document.getElementById('fAlert').value=p.alert;
-  document.getElementById('prodSheetTitle').textContent='✏️ แก้ไขข้อมูลสินค้า';
+  document.getElementById('prodSheetTitle').textContent='✏️ แก้ไขสินค้า';
   document.getElementById('prodSheet').classList.add('open');
 }
 
-function saveProd() {
+function _saveProdImpl() {
   const name=document.getElementById('fName').value.trim();
   const price=parseFloat(document.getElementById('fPrice').value)||0;
-  if(!name||price<0){toast('กรุณากรอกชื่อและราคาให้ถูกต้อง','e');return;}
+  if(!name||price<0){toast('กรอกชื่อและราคา','e');return;}
   const data={name,price,stock:parseInt(document.getElementById('fStock').value)||0,
     barcode:document.getElementById('fBarcode').value.trim(),
     emoji:document.getElementById('fEmoji').value.trim()||'📦',
     cat:document.getElementById('fCat').value.trim()||'ทั่วไป',
     alert:parseInt(document.getElementById('fAlert').value)||5};
-  if(editId){Object.assign(prods.find(x=>x.id===editId),data);toast('อัปเดตสินค้าสำเร็จ','s');}
-  else {prods.push({id:nid++,...data});toast('เพิ่มสินค้าใหม่สำเร็จ','s');}
-  
-  saveData();
+  if(editId){Object.assign(prods.find(x=>x.id===editId),data);toast('บันทึกแล้ว','s');}
+  else {prods.push({id:nid++,...data});toast('เพิ่มสินค้าแล้ว','s');}
   closeSheet('prodSheet');
+  lsSave();
   renderProdTable(); renderCats(); renderProds(); checkLow();
 }
 
-function delProd(id) {
-  if(!confirm('คุณแน่ใจใช่ไหมที่จะลบสินค้านี้ออกจากระบบ?')) return;
+function _delProdImpl(id) {
+  if(!confirm('ลบสินค้านี้?')) return;
   prods=prods.filter(x=>x.id!==id);
-  saveData();
-  renderProdTable(); renderCats(); renderProds(); checkLow();
-  toast('ลบสินค้าสำเร็จ','i');
+  lsSave();
+  renderProdTable(); renderCats(); renderProds();
+  toast('ลบแล้ว','i');
 }
 
 // ── History ──
 function renderHist() {
   const el=document.getElementById('histList');
-  if(!txns.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">ยังไม่มีรายการประวัติการขาย</div>';return;}
+  if(!txns.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">ยังไม่มีรายการ</div>';return;}
   el.innerHTML=txns.map(t=>`
-    <div class="hist-card" onclick="showTx('${t.id}')">
+    <div class="hist-card${t.voided?' voided':''}" onclick="showTx('${t.id}')">
       <div class="hist-left">
-        <div class="hist-id">${t.id}</div>
+        <div class="hist-id">${t.id}${t.voided?' <span style="color:var(--danger);font-size:10px;font-weight:700">[ยกเลิกแล้ว]</span>':''}</div>
         <div class="hist-desc">${t.items.map(i=>i.emoji).join('')} ${t.items.map(i=>i.name).join(', ').substring(0,40)}</div>
         <div class="hist-time">${new Date(t.date).toLocaleString('th-TH')}</div>
       </div>
       <div class="hist-right">
-        <span class="hist-total">${fmt(t.total)}</span>
-        <span class="meth-pill ${t.method==='Cash'?'meth-cash':'meth-qr'}">${t.method==='Cash'?'💵 เงินสด':'📲 QR'}</span>
+        <span class="hist-total" style="${t.voided?'text-decoration:line-through;color:var(--muted)':''}">${fmt(t.total)}</span>
+        <span class="meth-pill ${t.voided?'meth-void':t.method==='Cash'?'meth-cash':'meth-qr'}">${t.voided?'🚫 ยกเลิก':t.method==='Cash'?'💵 เงินสด':'📲 QR'}</span>
+        ${!t.voided?`<button class="void-btn" onclick="event.stopPropagation();voidTx('${t.id}')">ยกเลิกบิล</button>`:''}
       </div>
     </div>`).join('');
 }
 
+function voidTx(id) {
+  const t = txns.find(x=>x.id===id);
+  if (!t || t.voided) return;
+  requirePin(() => {
+    if (!confirm(`ยกเลิกบิล ${t.id} ยอด ${fmt(t.total)} ?\nระบบจะคืนสต็อกสินค้าอัตโนมัติ`)) return;
+    t.voided = true;
+    t.voidDate = new Date();
+    // คืนสต็อก
+    t.items.forEach(ci => {
+      const p = prods.find(x=>x.id===ci.id);
+      if (p) p.stock += ci.qty;
+    });
+    lsSave();
+    renderHist();
+    renderProds();
+    checkLow();
+    toast(`🚫 ยกเลิกบิล ${t.id} — คืนสต็อกแล้ว`, 'i');
+  }, `ยกเลิกบิล ${t.id} — ต้องการ PIN ผู้จัดการ`);
+}
+
 function showTx(id) {
   const t=txns.find(x=>x.id===id); if(!t) return;
+  const store = settings.storeName || STORE;
+  const vatHtml = buildVatLines(t.baseTotal || t.total);
   document.getElementById('receiptBody').innerHTML=`
-    <div class="receipt-header"><div class="store">${STORE}</div><div style="font-size:12px;color:var(--muted)">${new Date(t.date).toLocaleString('th-TH')}</div><div style="font-size:11px;color:var(--muted)">${t.id} · ${t.method==='Cash'?'เงินสด':'QR'}</div></div>
+    <div class="receipt-header">
+      <div class="store">${store}</div>
+      ${settings.address?`<div style="font-size:11px;color:var(--muted)">${settings.address}</div>`:''}
+      ${settings.phone?`<div style="font-size:11px;color:var(--muted)">${settings.phone}</div>`:''}
+      <div style="font-size:12px;color:var(--muted)">${new Date(t.date).toLocaleString('th-TH')}</div>
+      <div style="font-size:11px;color:var(--muted)">${t.id} · ${t.method==='Cash'?'เงินสด':'QR'}${t.voided?' · <span style="color:var(--danger)">ยกเลิกแล้ว</span>':''}</div>
+    </div>
     <div class="receipt-dashed"></div>
     ${t.items.map(i=>`<div class="receipt-row"><span>${i.emoji} ${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
     <div class="receipt-dashed"></div>
     ${t.disc>0?`<div class="receipt-row" style="color:var(--warning)"><span>ส่วนลด</span><span>-${fmt(t.disc)}</span></div>`:''}
+    ${vatHtml}
     <div class="receipt-row receipt-grand"><span>ยอดรวม</span><span style="color:var(--accent)">${fmt(t.total)}</span></div>
     ${t.method==='Cash'?`<div class="receipt-row" style="color:var(--success)"><span>ทอน</span><span>${fmt(t.change)}</span></div>`:''}
-    <div class="receipt-footer">ขอบคุณที่ใช้บริการ 🙏</div>`;
+    <div class="receipt-footer">${settings.footer || 'ขอบคุณที่ใช้บริการ 🙏'}</div>`;
   document.getElementById('receiptSheet').classList.add('open');
 }
 
-// ── Print Receipt ──
+// ── Print Receipt (mobile-safe: open new tab) ──
 function printReceipt() {
   const html = document.getElementById('receiptBody').innerHTML;
   const win = window.open('', '_blank');
-  if (!win) { toast('กรุณาอนุญาต Pop-up ของเบราว์เซอร์เพื่อพิมพ์','e'); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ใบเสร็จรับเงิน</title>
+  if (!win) { toast('อนุญาต pop-up เพื่อพิมพ์','e'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ใบเสร็จ</title>
 <style>
   body{font-family:'Courier New',monospace;font-size:14px;padding:20px;max-width:320px;margin:auto;background:#fff;color:#000;line-height:1.8}
   .store{font-size:17px;font-weight:bold;text-align:center;margin-bottom:4px}
+  .center{text-align:center;color:#555;font-size:12px}
   hr{border:none;border-top:1px dashed #ccc;margin:10px 0}
   .row{display:flex;justify-content:space-between}
   .grand{font-size:18px;font-weight:bold}
+  .green{color:#16a34a}
+  .muted{color:#777}
   .footer{text-align:center;font-size:12px;color:#888;margin-top:10px}
+  @media print{body{padding:4px}}
 </style></head><body>
-${html.replace(/color:var\(--accent\)/g,'color:#000').replace(/color:var\(--success\)/g,'color:#000')}
-<script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
+${html.replace(/color:var\(--accent\)/g,'color:#5b21b6')
+      .replace(/color:var\(--success\)/g,'color:#16a34a')
+      .replace(/color:var\(--warning\)/g,'color:#d97706')
+      .replace(/color:var\(--muted\)/g,'color:#777')}
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
   win.document.close();
 }
 
 // ── Reset ยอดขาย ──
-function resetTxns() {
-  if (!confirm('💥 คำเตือน! คุณต้องการล้างข้อมูลยอดขายทั้งหมดใช่ไหม?\nการกระทำนี้จะล้างประวัติถาวรและไม่สามารถกู้คืนได้')) return;
+function _resetTxnsImpl() {
+  if (!confirm('ล้างข้อมูลยอดขายทั้งหมด?\nการกระทำนี้ไม่สามารถย้อนกลับได้')) return;
   txns = [];
-  saveData();
+  lsSave();
   renderHist();
   renderDash();
-  toast('ล้างประวัติการขายเรียบร้อยแล้ว','i');
+  toast('ล้างยอดขายแล้ว','i');
 }
 
-// ── Export ยอดขายเป็น Excel (CSV) ──
-function exportSalesCSV() {
-  if (!txns.length) { toast('ไม่มีข้อมูลยอดขายในระบบให้ส่งออก', 'e'); return; }
-  let csvContent = "\uFEFF"; // รองรับภาษาไทยใน Excel
-  csvContent += "เลขที่ใบเสร็จ,วันที่-เวลา,รายการสินค้า,ยอดรวมสุทธิ,ช่องทางชำระ\n";
-  
-  txns.forEach(t => {
-    let itemStr = t.items.map(i => `${i.name}(x${i.qty})`).join(' | ');
-    csvContent += `${t.id},${new Date(t.date).toLocaleString('th-TH')},"${itemStr}",${t.total},${t.method === 'Cash' ? 'เงินสด' : 'QR Code'}\n`;
-  });
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.setAttribute("download", `รายงานยอดขาย_POS_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  toast('📥 ส่งออกไฟล์รายงาน CSV สำเร็จ', 's');
+// ── Export CSV ──
+function exportCSV(type) {
+  let rows, filename;
+  if (type === 'sales') {
+    rows = [['เลขใบเสร็จ','วันเวลา','รายการ','จำนวนชิ้น','ยอดรวม','ส่วนลด','สุทธิ','วิธีชำระ']];
+    txns.forEach(t => rows.push([
+      t.id,
+      new Date(t.date).toLocaleString('th-TH'),
+      t.items.map(i=>`${i.name}x${i.qty}`).join(' | '),
+      t.items.reduce((s,i)=>s+i.qty,0),
+      t.sub, t.disc, t.total, t.method
+    ]));
+    filename = `ยอดขาย_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.csv`;
+  } else {
+    rows = [['ID','ชื่อสินค้า','ราคา','คงเหลือ','หมวดหมู่','บาร์โค้ด','แจ้งเตือนที่']];
+    prods.forEach(p => rows.push([p.id,p.name,p.price,p.stock,p.cat,p.barcode,p.alert]));
+    filename = `สต็อกสินค้า_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.csv`;
+  }
+  const bom = '\uFEFF'; // UTF-8 BOM สำหรับ Excel ภาษาไทย
+  const csv = bom + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = filename; a.click();
+  toast(`📥 ส่งออก ${filename}`,'s');
 }
 
 // ── Dashboard ──
 function renderDash() {
-  const tod=txns.filter(t=>new Date(t.date).toDateString()===new Date().toDateString());
+  const activeTxns = txns.filter(t=>!t.voided);
+  const tod=activeTxns.filter(t=>new Date(t.date).toDateString()===new Date().toDateString());
   const todTotal=tod.reduce((s,t)=>s+t.total,0);
   const todItems=tod.reduce((s,t)=>s+t.items.reduce((a,i)=>a+i.qty,0),0);
+  const voidedToday=txns.filter(t=>t.voided&&new Date(t.date).toDateString()===new Date().toDateString()).length;
   const low=prods.filter(p=>p.stock>0&&p.stock<=p.alert).length;
   const out=prods.filter(p=>p.stock===0).length;
-  const allTotal=txns.reduce((s,t)=>s+t.total,0);
+  const allTotal=activeTxns.reduce((s,t)=>s+t.total,0);
   document.getElementById('dashStats').innerHTML=[
     {l:'ยอดขายวันนี้',v:fmt(todTotal),s:`${tod.length} รายการ`,c:'var(--success)'},
     {l:'สินค้าขายวันนี้',v:fmtN(todItems),s:'ชิ้น',c:'var(--accent)'},
+    {l:'ยกเลิกบิลวันนี้',v:voidedToday,s:'รายการ',c:'var(--danger)'},
     {l:'สินค้าใกล้หมด',v:low,s:'รายการ',c:'var(--warning)'},
-    {l:'สินค้าหมดคลัง',v:out,s:'รายการ',c:'var(--danger)'},
-    {l:'รายได้รวมทั้งหมด',v:fmt(allTotal),s:'ทุกรายการในระบบ',c:'var(--success)'},
+    {l:'รายได้รวม',v:fmt(allTotal),s:'ไม่รวมที่ยกเลิก',c:'var(--success)'},
     {l:'สินค้าทั้งหมด',v:prods.length,s:'รายการ',c:'var(--info)'},
   ].map(s=>`<div class="stat-card"><div class="stat-lbl">${s.l}</div><div class="stat-val" style="color:${s.c}">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
 
-  // Hourly bars
+  // Hourly bars — จากข้อมูลจริง (active only)
   const hMap={};
   tod.forEach(t=>{const h=new Date(t.date).getHours();hMap[h]=(hMap[h]||0)+t.total;});
   const nowH=new Date().getHours();
   const startH=Math.max(nowH-9,6);
   const hrs=Array.from({length:Math.min(nowH-startH+1,10)},(_,i)=>{
-    const h=startH+i; return {h:String(h).padStart(2,'0')+':00',v:hMap[h]||0};
+    const h=startH+i;
+    return {h:String(h).padStart(2,'0')+':00',v:hMap[h]||0};
   });
   const mx=Math.max(...hrs.map(h=>h.v),1);
   document.getElementById('dashBars').innerHTML = hrs.length
     ? hrs.map(h=>`<div class="bar-row"><span class="bar-lbl">${h.h}</span><div class="bar-bg"><div class="bar-fill" style="width:${(h.v/mx*100).toFixed(1)}%"></div></div><span class="bar-v">${fmt(h.v)}</span></div>`).join('')
-    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">ยังไม่มีข้อมูลยอดขายในวันนี้</div>';
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">ยังไม่มีข้อมูลวันนี้</div>';
 
-  // Top products
+  // Top products — นับจาก txns จริง
   const soldMap={};
   txns.forEach(t=>t.items.forEach(i=>{soldMap[i.id]=(soldMap[i.id]||{name:i.name,emoji:i.emoji,qty:0});soldMap[i.id].qty+=i.qty;}));
   const topList=Object.values(soldMap).sort((a,b)=>b.qty-a.qty).slice(0,5);
   const tmx=Math.max(...topList.map(p=>p.qty),1);
   document.getElementById('dashTop').innerHTML = topList.length
-    ? topList.map(p=>`<div class="bar-row"><span class="bar-lbl" style="font-size:18px;width:28px">${p.emoji}</span><div class="bar-bg"><div class="bar-fill" style="width:${(p.qty/tmx*100).toFixed(1)}%;background:var(--success)"></div></div><span class="bar-v" style="font-size:11px;color:var(--text)">${p.name.substring(0,10)}</span></div>`).join('')
+    ? topList.map(p=>`<div class="bar-row"><span class="bar-lbl" style="font-size:18px;width:28px">${p.emoji}</span><div class="bar-bg"><div class="bar-fill" style="width:${(p.qty/tmx*100).toFixed(1)}%;background:var(--success)"></div></div><span class="bar-v" style="font-size:11px;color:var(--text)">${p.name.substring(0,7)}</span></div>`).join('')
     : '<div style="color:var(--muted);font-size:13px;padding:8px 0">ยังไม่มีข้อมูล</div>';
 }
 
@@ -1173,21 +1495,246 @@ function checkLow() {
 
 // ── Clock ──
 setInterval(()=>{
-  document.getElementById('clk').textContent=new Date().toLocaleTimeString('th-TH');
+  const t=new Date();
+  document.getElementById('clk').textContent=t.toLocaleTimeString('th-TH');
 },1000);
 
-// ── Keyboard shortcuts ──
-document.addEventListener('keydown', e=>{
-  if (e.key==='/'&&document.activeElement.tagName!=='INPUT') { e.preventDefault(); document.getElementById('srch').focus(); }
-  if (e.key==='Escape') { document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); }
+// ── Hardware Barcode Scanner (USB/Bluetooth) ──
+// สแกนเนอร์ส่ง string + Enter ภายใน ~50ms ต่อตัวอักษร
+let scanBuffer = '', scanTimer = null;
+document.addEventListener('keydown', e => {
+  // ถ้า focus อยู่ที่ input ปกติ — ให้พิมพ์ตามปกติ ยกเว้น Escape
+  const tag = document.activeElement.tagName;
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
+    document.activeElement.blur();
+    return;
+  }
+  if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+    e.preventDefault(); document.getElementById('srch').focus(); return;
+  }
+
+  // ── Barcode scanner detection ──
+  // scanner พิมพ์เร็วมาก (< 50ms/char) และจบด้วย Enter
+  // ถ้า focus อยู่ที่ input ปล่อยให้ browser จัดการ แต่ดัก Enter
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+  if (e.key === 'Enter') {
+    if (scanBuffer.length >= 3) {
+      handleBarcodeScan(scanBuffer);
+    }
+    scanBuffer = '';
+    clearTimeout(scanTimer);
+    return;
+  }
+  // เก็บ printable chars
+  if (e.key.length === 1) {
+    scanBuffer += e.key;
+    clearTimeout(scanTimer);
+    // ถ้าไม่มี Enter ภายใน 100ms ให้ล้าง buffer
+    scanTimer = setTimeout(() => { scanBuffer = ''; }, 100);
+  }
 });
 
+function handleBarcodeScan(code) {
+  code = code.trim();
+  const p = prods.find(x => x.barcode && x.barcode === code);
+  if (!p) { toast(`ไม่พบบาร์โค้ด: ${code}`, 'e'); return; }
+  if (p.stock === 0) { toast(`${p.emoji} ${p.name} — หมดสต็อก`, 'e'); return; }
+  addToCart(p.id);
+  // Smart cart: เปิดตะกร้าให้เห็นหลัง scan
+  smartExpandCart();
+}
+
+// ── Smart Cart Expand ──
+function smartExpandCart() {
+  if (window.innerWidth >= 1024) return; // desktop ไม่ต้อง expand
+  const panel = document.getElementById('cartPanel');
+  if (panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+    // auto-collapse กลับใน 3 วิ ถ้า user ไม่แตะ
+    clearTimeout(panel._autoCollapse);
+    panel._autoCollapse = setTimeout(() => {
+      // collapse เฉพาะถ้า user ไม่ได้ scroll ตะกร้า
+      panel.classList.add('collapsed');
+    }, 3000);
+  }
+}
+
+// ── Scanner Activity Indicator ──
+let scanPillTimer = null;
+document.addEventListener('keydown', () => {
+  if (scanBuffer.length > 0) {
+    const pill = document.getElementById('scannerPill');
+    if (pill) { pill.style.display = 'inline'; clearTimeout(scanPillTimer); scanPillTimer = setTimeout(() => { pill.style.display = 'none'; }, 2000); }
+  }
+}, true);
+
+// ── Settings ──
+const LS_SETTINGS = 'pospro_settings';
+let settings = {
+  storeName: 'POS Pro ร้านค้า', address: '', phone: '',
+  footer: 'ขอบคุณที่ใช้บริการ 🙏',
+  vatOn: false, vatMode: 'inc', promptPay: '',
+  managerPin: '0000'
+};
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem(LS_SETTINGS);
+    if (s) settings = { ...settings, ...JSON.parse(s) };
+  } catch(e) {}
+}
+function saveSettings() {
+  settings.storeName = document.getElementById('sStoreName').value || 'POS Pro ร้านค้า';
+  settings.address   = document.getElementById('sAddress').value;
+  settings.phone     = document.getElementById('sPhone').value;
+  settings.footer    = document.getElementById('sFooter').value || 'ขอบคุณที่ใช้บริการ 🙏';
+  settings.vatOn     = document.getElementById('sVatOn').checked;
+  settings.vatMode   = document.getElementById('sVatMode').value;
+  settings.promptPay = document.getElementById('sPromptPay').value;
+  document.getElementById('vatModeRow').style.display = settings.vatOn ? '' : 'none';
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+}
+function renderSettings() {
+  document.getElementById('sStoreName').value = settings.storeName;
+  document.getElementById('sAddress').value   = settings.address;
+  document.getElementById('sPhone').value     = settings.phone;
+  document.getElementById('sFooter').value    = settings.footer;
+  document.getElementById('sVatOn').checked   = settings.vatOn;
+  document.getElementById('sVatMode').value   = settings.vatMode;
+  document.getElementById('sPromptPay').value = settings.promptPay;
+  document.getElementById('vatModeRow').style.display = settings.vatOn ? '' : 'none';
+  document.getElementById('pinStatus').textContent = settings.managerPin === '0000' ? 'ยังไม่ได้ตั้ง PIN (ใช้ 0000)' : 'ตั้ง PIN แล้ว ● ● ● ●';
+}
+
+// ── PIN System ──
+let pinBuffer = '', pinCallback = null, pinMode = 'verify'; // verify | set1 | set2
+let pinTemp = '';
+
+function requirePin(callback, subText = 'กรอก PIN ผู้จัดการ') {
+  pinBuffer = ''; pinCallback = callback; pinMode = 'verify';
+  document.getElementById('pinSubText').textContent = subText;
+  updatePinDots('');
+  document.getElementById('pinOverlay').classList.add('open');
+}
+function closePinModal() {
+  document.getElementById('pinOverlay').classList.remove('open');
+  pinBuffer = ''; pinCallback = null;
+}
+function updatePinDots(buf, state = '') {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('pd' + i);
+    d.classList.toggle('filled', i < buf.length);
+    d.classList.toggle('error', state === 'error');
+  }
+}
+function pinKey(k) {
+  if (k === 'clr') { pinBuffer = ''; updatePinDots(''); return; }
+  if (k === 'del') { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(pinBuffer); return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updatePinDots(pinBuffer);
+  if (pinBuffer.length === 4) {
+    setTimeout(() => {
+      if (pinMode === 'verify') {
+        if (pinBuffer === settings.managerPin) {
+          closePinModal();
+          if (pinCallback) pinCallback();
+        } else {
+          updatePinDots(pinBuffer, 'error');
+          toast('PIN ไม่ถูกต้อง','e');
+          setTimeout(() => { pinBuffer = ''; updatePinDots(''); }, 800);
+        }
+      } else if (pinMode === 'set1') {
+        pinTemp = pinBuffer; pinBuffer = '';
+        pinMode = 'set2';
+        document.getElementById('pinSubText').textContent = 'กรอก PIN ใหม่อีกครั้ง';
+        updatePinDots('');
+      } else if (pinMode === 'set2') {
+        if (pinBuffer === pinTemp) {
+          settings.managerPin = pinBuffer;
+          localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+          closePinModal();
+          renderSettings();
+          toast('✅ เปลี่ยน PIN สำเร็จ','s');
+        } else {
+          updatePinDots(pinBuffer, 'error');
+          toast('PIN ไม่ตรงกัน ลองใหม่','e');
+          setTimeout(() => { pinBuffer = ''; pinTemp = ''; pinMode = 'set1'; document.getElementById('pinSubText').textContent = 'กรอก PIN ใหม่'; updatePinDots(''); }, 900);
+        }
+      }
+    }, 100);
+  }
+}
+function changePinFlow() {
+  pinBuffer = ''; pinMode = 'set1'; pinTemp = '';
+  document.getElementById('pinSubText').textContent = 'กรอก PIN ใหม่';
+  updatePinDots('');
+  document.getElementById('pinOverlay').classList.add('open');
+}
+
+// ── Wrap manager-only actions ──
+// ── Manager-PIN wrappers ──
+function delProd(id)   { requirePin(() => _delProdImpl(id), 'ลบสินค้า — ต้องการ PIN ผู้จัดการ'); }
+function resetTxns()   { requirePin(() => _resetTxnsImpl(), 'Reset ยอดขาย — ต้องการ PIN ผู้จัดการ'); }
+function saveProd()    {
+  if (editId) { requirePin(() => _saveProdImpl(), 'แก้ไขสินค้า — ต้องการ PIN ผู้จัดการ'); }
+  else { _saveProdImpl(); }
+}
+
+// ── Backup / Restore JSON ──
+function backupJSON() {
+  const data = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    prods, txns: txns.map(t=>({...t, date: t.date instanceof Date ? t.date.toISOString() : t.date})),
+    nid, settings
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `POSPro_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('📤 สำรองข้อมูลสำเร็จ','s');
+}
+function restoreJSON() {
+  document.getElementById('restoreInput').value = '';
+  document.getElementById('restoreInput').click();
+}
+function doRestore(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.prods || !data.txns) { toast('ไฟล์ไม่ถูกต้อง','e'); return; }
+      if (!confirm(`นำเข้าข้อมูลจาก ${new Date(data.exportDate).toLocaleString('th-TH')}?\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+      prods = data.prods;
+      txns  = data.txns.map(t=>({...t, date: new Date(t.date)}));
+      nid   = data.nid || 13;
+      if (data.settings) { settings = {...settings, ...data.settings}; renderSettings(); }
+      lsSave();
+      localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+      renderCats(); renderProds(); checkLow();
+      toast('✅ กู้คืนข้อมูลสำเร็จ','s');
+    } catch(err) { toast('อ่านไฟล์ไม่ได้: ' + err.message,'e'); }
+  };
+  reader.readAsText(file);
+}
+
+// ── Patch goView to render settings ──
+const _origGoView = goView;
+function goView(v) {
+  _origGoView(v);
+  if (v === 'settings') renderSettings();
+}
+
 // ── Init ──
-loadData();
-updateNav();
-renderCats();
-renderProds();
-checkLow();
+loadSettings();
+renderCats(); renderProds(); checkLow();
+const hadData = localStorage.getItem(LS_PRODS);
+if (hadData) toast('💾 โหลดข้อมูลจากเครื่องแล้ว','i');
 </script>
 </body>
 </html>
