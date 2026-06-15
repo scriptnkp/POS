@@ -491,6 +491,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
     <button class="snav-btn active" data-view="pos"><span class="icon">🛒</span>ขาย</button>
     <button class="snav-btn" data-view="products"><span class="icon">📦</span>สินค้า</button>
     <button class="snav-btn" data-view="history"><span class="icon">🧾</span>ใบเสร็จ</button>
+    <button class="snav-btn" data-view="queue"><span class="icon">🔔</span>คิว</button>
     <button class="snav-btn" data-view="dashboard"><span class="icon">📊</span>รายงาน</button>
     <button class="snav-btn" data-view="settings"><span class="icon">⚙️</span>ตั้งค่า</button>
   </nav>
@@ -598,6 +599,12 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
       </div>
     </div>
 
+    <!-- === Queue View === -->
+    <div class="view" id="view-queue">
+      <div class="topbar"><span class="topbar-title">🔔 คิวอาหาร</span></div>
+      <div class="hist-scroll" id="queueList"></div>
+    </div>
+
     <!-- === Settings View === -->
     <div class="view" id="view-settings">
       <div class="topbar"><span class="topbar-title">⚙️ ตั้งค่า</span></div>
@@ -686,6 +693,7 @@ input, select { font-family: inherit; outline: none; border: none; touch-action:
     <button class="bnav-btn active" data-view="pos"><span class="icon">🛒</span>ขาย<span class="bnav-badge" id="bnBadge" style="display:none">!</span></button>
     <button class="bnav-btn" data-view="products"><span class="icon">📦</span>สินค้า</button>
     <button class="bnav-btn" data-view="history"><span class="icon">🧾</span>บิล</button>
+    <button class="bnav-btn" data-view="queue"><span class="icon">🔔</span>คิว</button>
     <button class="bnav-btn" data-view="dashboard"><span class="icon">📊</span>รายงาน</button>
     <button class="bnav-btn" data-view="settings"><span class="icon">⚙️</span>ตั้งค่า</button>
   </nav>
@@ -898,11 +906,25 @@ function toast(msg, type='i') {
 function goView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
-  document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => b.classList.toggle('active', b.dataset.view===v));
+  document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view===v);
+    if (b.dataset.view==='queue') {
+      const pending = queueList.filter(q=>q.status==='pending').length;
+      const badge = b.querySelector('.bnav-badge') || (() => { 
+        const bd = document.createElement('span');
+        bd.className = 'bnav-badge';
+        b.appendChild(bd);
+        return bd;
+      })();
+      badge.style.display = pending ? 'inline' : 'none';
+      badge.textContent = pending;
+    }
+  });
   if (v==='dashboard') renderDash();
   if (v==='products')  renderProdTable();
   if (v==='history')   renderHist();
   if (v==='settings')  renderSettings();
+  if (v==='queue')     renderQueue();
 }
 document.querySelectorAll('.bnav-btn, .snav-btn').forEach(b => b.addEventListener('click', ()=>goView(b.dataset.view)));
 
@@ -1211,19 +1233,36 @@ function confirmPay(method) {
   const grand = getGrandTotal(total);
   const change = method==='Cash' ? Math.max((parseInt(cashStr)||0)-grand,0) : 0;
   const vatAmt = settings.vatOn ? (settings.vatMode==='exc' ? total*0.07 : total*0.07/1.07) : 0;
-  txns.unshift({
-    id:'R'+String(txns.length+1).padStart(4,'0'),
-    date:new Date(), items:[...cart],
+  const txId = 'R'+String(txns.length+1).padStart(4,'0');
+  
+  const txn = {
+    id: txId,
+    date: new Date(), items:[...cart],
     sub, disc, total: grand, baseTotal: total,
     vatAmt, vatMode: settings.vatOn ? settings.vatMode : null,
     method, change, voided: false
-  });
+  };
+  
+  // Assign queue number
+  const qNum = addToQueueList(txId, cart);
+  txn.queueNo = qNum;
+  
+  txns.unshift(txn);
   cart.forEach(ci=>{const p=prods.find(x=>x.id===ci.id);if(p) p.stock=Math.max(0,p.stock-ci.qty);});
   closeSheet('qrSheet'); closeSheet('cashSheet');
   cart=[]; document.getElementById('discV').value='';
   lsSave();
   renderCart(); renderProds(); checkLow();
-  toast(`✅ ${fmt(grand)}${method==='Cash'?` ทอน ${fmt(change)}`:''}`, 's');
+  // Update queue badge
+  const queueNavBtn = Array.from(document.querySelectorAll('[data-view="queue"]'))[0];
+  if (queueNavBtn) {
+    let badge = queueNavBtn.querySelector('.bnav-badge');
+    if (!badge) { badge = document.createElement('span'); badge.className = 'bnav-badge'; queueNavBtn.appendChild(badge); }
+    const pending = queueList.filter(q=>q.status==='pending').length;
+    badge.style.display = pending ? 'inline' : 'none';
+    badge.textContent = pending;
+  }
+  toast(`✅ คิวที่ ${qNum} · ${fmt(grand)}${method==='Cash'?` ทอน ${fmt(change)}`:''}`, 's');
 }
 
 // ── Scan simulation ──
@@ -1362,6 +1401,7 @@ function showTx(id) {
       ${settings.phone?`<div style="font-size:11px;color:var(--muted)">${settings.phone}</div>`:''}
       <div style="font-size:12px;color:var(--muted)">${new Date(t.date).toLocaleString('th-TH')}</div>
       <div style="font-size:11px;color:var(--muted)">${t.id} · ${t.method==='Cash'?'เงินสด':'QR'}${t.voided?' · <span style="color:var(--danger)">ยกเลิกแล้ว</span>':''}</div>
+      ${t.queueNo ? `<div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:6px">🔔 คิวที่ ${t.queueNo}</div>` : ''}
     </div>
     <div class="receipt-dashed"></div>
     ${t.items.map(i=>`<div class="receipt-row"><span>${i.emoji} ${i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
@@ -1439,6 +1479,27 @@ function exportCSV(type) {
   toast(`📥 ส่งออก ${filename}`,'s');
 }
 
+// ── Queue Management ──
+function renderQueue() {
+  const el=document.getElementById('queueList');
+  if(!queueList.length) {el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">ไม่มีคิวสั่ง</div>';return;}
+  el.innerHTML=queueList.map(q=>{
+    const tx = txns.find(x=>x.id===q.txId);
+    const itemStr = q.items.map(i=>`${i.emoji} ${i.name}×${i.qty}`).join(', ');
+    return `<div class="hist-card" style="border-left:4px solid ${q.status==='pending'?'var(--warning)':q.status==='ready'?'var(--success)':'var(--info)'}">
+      <div class="hist-left">
+        <div class="hist-id">🔔 คิวที่ ${q.queueNo}</div>
+        <div class="hist-desc">${itemStr}</div>
+        <div class="hist-time">${new Date(q.createdAt).toLocaleTimeString('th-TH')}</div>
+      </div>
+      <div class="hist-right">
+        <span class="meth-pill" style="background:${q.status==='pending'?'rgba(245,158,11,.15)':q.status==='ready'?'rgba(34,197,94,.15)':'rgba(56,189,248,.15)'};color:${q.status==='pending'?'var(--warning)':q.status==='ready'?'var(--success)':'var(--info)'}">${q.status==='pending'?'⏳ รอทำ':q.status==='ready'?'✅ เสร็จ':'📱 ได้รับ'}</span>
+        ${q.status==='pending'?`<button class="void-btn" onclick="markQueueReady(${q.queueNo});renderQueue()" style="background:rgba(34,197,94,.1);color:var(--success);border-color:var(--success);margin-top:4px;width:100%">✅ เสร็จแล้ว</button>`:q.status==='ready'?`<button class="void-btn" onclick="removeQueue(${q.queueNo});renderQueue()" style="background:rgba(56,189,248,.1);color:var(--info);border-color:var(--info);margin-top:4px;width:100%">📱 ส่งถึงลูก</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── Dashboard ──
 function renderDash() {
   const activeTxns = txns.filter(t=>!t.voided);
@@ -1493,11 +1554,69 @@ function checkLow() {
   badge.textContent=n;
 }
 
-// ── Clock ──
+// ── Queue System ──
+const LS_QUEUE = 'pospro_queue';
+let queueNum = 1, queueList = [], lastQueueDay = '';
+
+function initQueue() {
+  const today = new Date().toDateString();
+  const lastDay = localStorage.getItem(LS_QUEUE + '_date') || '';
+  
+  // ถ้าเปลี่ยนวัน → reset queue เป็น 1
+  if (today !== lastDay) {
+    queueNum = 1;
+    queueList = [];
+    localStorage.setItem(LS_QUEUE + '_date', today);
+    localStorage.setItem(LS_QUEUE + '_num', '1');
+    localStorage.setItem(LS_QUEUE + '_list', '[]');
+  } else {
+    // โหลด queue จากวันเดิม
+    const num = parseInt(localStorage.getItem(LS_QUEUE + '_num')) || 1;
+    const list = JSON.parse(localStorage.getItem(LS_QUEUE + '_list') || '[]');
+    queueNum = num;
+    queueList = list;
+  }
+}
+
+function nextQueueNum() {
+  const num = queueNum;
+  queueNum++;
+  localStorage.setItem(LS_QUEUE + '_num', queueNum);
+  return num;
+}
+
+function addToQueueList(txId, items) {
+  const qNum = nextQueueNum();
+  const q = {
+    queueNo: qNum,
+    txId, items,
+    createdAt: new Date().toISOString(),
+    status: 'pending' // pending | ready | completed
+  };
+  queueList.push(q);
+  localStorage.setItem(LS_QUEUE + '_list', JSON.stringify(queueList));
+  return qNum;
+}
+
+function markQueueReady(qNum) {
+  const q = queueList.find(x=>x.queueNo === qNum);
+  if (q) { q.status = 'ready'; localStorage.setItem(LS_QUEUE + '_list', JSON.stringify(queueList)); }
+}
+
+function removeQueue(qNum) {
+  queueList = queueList.filter(x=>x.queueNo !== qNum);
+  localStorage.setItem(LS_QUEUE + '_list', JSON.stringify(queueList));
+}
+
+// ── Clock + Queue Reset ──
 setInterval(()=>{
   const t=new Date();
   document.getElementById('clk').textContent=t.toLocaleTimeString('th-TH');
-},1000);
+  // Check ถ้าเกลี่ยวัน → reset queue
+  const today = t.toDateString();
+  const lastDay = localStorage.getItem(LS_QUEUE + '_date') || '';
+  if (today !== lastDay) { initQueue(); }
+}, 1000);
 
 // ── Hardware Barcode Scanner (USB/Bluetooth) ──
 // สแกนเนอร์ส่ง string + Enter ภายใน ~50ms ต่อตัวอักษร
@@ -1668,10 +1787,16 @@ function pinKey(k) {
   }
 }
 function changePinFlow() {
-  pinBuffer = ''; pinMode = 'set1'; pinTemp = '';
-  document.getElementById('pinSubText').textContent = 'กรอก PIN ใหม่';
-  updatePinDots('');
-  document.getElementById('pinOverlay').classList.add('open');
+  // ต้อง verify PIN เก่าก่อน
+  requirePin(() => {
+    // หลังจาก verify สำเร็จ → ปิด verify modal แล้วเปิด set1
+    setTimeout(() => {
+      pinBuffer = ''; pinMode = 'set1'; pinTemp = '';
+      document.getElementById('pinSubText').textContent = 'กรอก PIN ใหม่';
+      updatePinDots('');
+      document.getElementById('pinOverlay').classList.add('open');
+    }, 200);
+  }, 'ยืนยันตัวตน — กรอก PIN ปัจจุบัน');
 }
 
 // ── Wrap manager-only actions ──
@@ -1725,6 +1850,7 @@ function doRestore(e) {
 
 // ── Init ──
 loadSettings();
+initQueue();
 renderCats(); renderProds(); checkLow();
 const hadData = localStorage.getItem(LS_PRODS);
 if (hadData) toast('💾 โหลดข้อมูลจากเครื่องแล้ว','i');
